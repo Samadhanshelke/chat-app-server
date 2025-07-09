@@ -16,7 +16,7 @@ const server = http.createServer(app); // Create HTTP server
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.BASE_URL,
   credentials: true,
 }));
 app.use(cookieParser());
@@ -32,7 +32,7 @@ app.use('/api/v1', UserRoutes);
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+      origin: process.env.BASE_URL,
     credentials: true,
   },
 });
@@ -72,5 +72,5 @@ io.on('connection', (socket) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running`);
 });
