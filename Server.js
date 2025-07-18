@@ -14,6 +14,19 @@ const server = http.createServer(app);
 
 // Create WebSocket server AFTER creating the HTTP server
 const wss = new WebSocket.Server({ server });
+server.on('upgrade', (request, socket, head) => {
+  const origin = request.headers.origin;
+
+  if (origin === process.env.BASE_URL) {
+    // Allow the upgrade
+    wss.handleUpgrade(request, socket, head, ws => {
+      wss.emit('connection', ws, request);
+    });
+  } else {
+    // Reject the connection
+    socket.destroy();
+  }
+});
 
 // ✅ Log the refresh token from cookies when a WebSocket connects
 wss.on('connection', (ws, req) => {
