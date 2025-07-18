@@ -14,29 +14,24 @@ const server = http.createServer(app);
 
 // Create WebSocket server AFTER creating the HTTP server
 const wss = new WebSocket.Server({ server });
-server.on('upgrade', (request, socket, head) => {
-  const origin = request.headers.origin;
 
-  if (origin === process.env.BASE_URL) {
-    // Allow the upgrade
-    wss.handleUpgrade(request, socket, head, ws => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    // Reject the connection
-    socket.destroy();
-  }
-});
+const allowedOrigins = [process.env.BASE_URL];
 
-// ✅ Log the refresh token from cookies when a WebSocket connects
 wss.on('connection', (ws, req) => {
+  const origin = req.headers.origin;
+
+  if (!allowedOrigins.includes(origin)) {
+    console.log('Blocked WS connection from origin:', origin);
+    ws.close(1008, 'Origin not allowed');
+    return;
+  }
+
   const cookies = cookie.parse(req.headers.cookie || '');
   const refreshToken = cookies.refreshToken;
-
   console.log('Received refreshToken:', refreshToken);
-
   ws.send('Token received and logged!');
 });
+
 
 // Middleware
 app.use(cors({
