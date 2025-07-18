@@ -181,11 +181,12 @@ const SignUp = async (req, res) => {
     await newUser.save();
 
     // Set refresh token in HTTP-only cookies
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: false, // For development
-      sameSite: 'Strict',
-    });
+res.cookie('refreshToken', refreshToken, {
+  httpOnly: true,
+  secure: true,         // ✅ Required for HTTPS
+  sameSite: 'None',     // ✅ Allows cross-site cookies
+});
+
     const userResponse = {
       _id: newUser._id,
       name: newUser.name,
@@ -250,11 +251,12 @@ const SignIn = async (req, res) => {
     await user.save();
 
     // Set refresh token in HTTP-only cookies
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Strict',
-    });
+  res.cookie('refreshToken', refreshToken, {
+  httpOnly: true,
+  secure: true,         // ✅ Required for HTTPS
+  sameSite: 'None',     // ✅ Allows cross-site cookies
+});
+
 
     return res.status(200).json({
       success: true,

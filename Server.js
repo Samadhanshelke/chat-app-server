@@ -5,14 +5,25 @@ const connectDB = require('./config/db');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
+const cookie = require('cookie');
+const WebSocket = require('ws');
 
-const AuthRoutes = require('./routes/AuthRoutes');
-const UserRoutes = require('./routes/UserRoutes');
-
+// Create app and HTTP server
 const app = express();
-const server = http.createServer(app); // Create HTTP server
+const server = http.createServer(app);
+
+// Create WebSocket server AFTER creating the HTTP server
+const wss = new WebSocket.Server({ server });
+
+// ✅ Log the refresh token from cookies when a WebSocket connects
+wss.on('connection', (ws, req) => {
+  const cookies = cookie.parse(req.headers.cookie || '');
+  const refreshToken = cookies.refreshToken;
+
+  console.log('Received refreshToken:', refreshToken);
+
+  ws.send('Token received and logged!');
+});
 
 // Middleware
 app.use(cors({
@@ -26,51 +37,12 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.use('/api/v1/auth', AuthRoutes);
-app.use('/api/v1', UserRoutes);
-
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-      origin: process.env.BASE_URL,
-    credentials: true,
-  },
-});
-
-let onlineUsers = new Map();
-
-// Authenticate socket connection
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-
-  if (!token) return next(new Error('No token provided'));
-
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_CODE, (err, decoded) => {
-    if (err) return next(new Error('Token invalid'));
-    socket.userId = decoded.id;
-    console.log('Socket connected:', decoded.id);
-    console.log('Socket ID:', socket.id);
-    next();
-  });
-});
-
-io.on('connection', (socket) => {
-  const userId = socket.userId;
-  onlineUsers.set(userId, socket.id);
-
-  // Broadcast updated online users
-  const online = Array.from(onlineUsers.keys());
-  io.emit('online-users', online);
-  console.log('Emitting online users:', online);
-  
-  socket.on('disconnect', () => {
-    onlineUsers.delete(userId);
-    io.emit('online-users', Array.from(onlineUsers.keys()));
-  });
-});
+app.use('/api/v1/auth', require('./routes/AuthRoutes'));
+app.use('/api/v1', require('./routes/UserRoutes'));
+app.use('/api/v1/message', require('./routes/MessageRoutes'));
 
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server running`);
+  console.log(`Server running on port ${PORT}`);
 });
